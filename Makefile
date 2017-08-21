@@ -19,7 +19,7 @@ rebuild-data: read-dblp
 
 xml/dblp.xml.gz:
 	mkdir -p xml
-	wget http://dblp.uni-trier.de/xml/dblp.xml.gz -o xml/dblp.xml.gz
+	wget http://dblp.uni-trier.de/xml/dblp.xml.gz -O xml/dblp.xml.gz
 
 compile: dblp-search alldata
 
