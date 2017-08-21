@@ -3,7 +3,7 @@ all: compile
 .PHONY: compile alldata run all rebuild-data
 
 read-dblp: read-dblp.cpp dblp.h ext.h
-	g++ -std=c++14 read-dblp.cpp -o read-dblp -O3
+	g++ -std=c++1y read-dblp.cpp -o read-dblp -O3
 
 dblp-search: dblp-search.cpp db.h dblp.h netauto.h netregex.h netedge.h dblp-edge.h ext.h
 	g++ -std=c++1y dblp-search.cpp -o dblp-search -O3
