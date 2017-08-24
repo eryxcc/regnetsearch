@@ -15,33 +15,32 @@ Best run with 'make' -- this will download DBLP using wget, run the parser (read
 
 ## Conditions
 
-value 0 is interpreted as 'false', 1 is interpreted as 'true'
-in-between values are interpreted as probabilities
+value 0 is interpreted as 'false', 1 is interpreted as 'true'; in-between values are interpreted as probabilities
 
-x&y is equivalent to x*y
-x|y is equivalent to x+y-x*y
+x&y is equivalent to x\*y
+
+x|y is equivalent to x+y-x\*y
+
 x^y is min(x,y)
 
-<real constant>
-<condition1> (+|-|*|/|&|||^) <condition2>
-<condition1> (>|<|=|!=|>=|<=) <condition2> (returns a 0/1 condition)
-
-search <nameset> "string"
-regexsearch <nameset> "extended POSIX regex"
-
-(exists|forall|sum|prod|min|max) <edge> <condition> [not yet implemented]
+* _real constant_
+* _condition1_ (+|-|\*|/|&|||^) _condition2_
+* _condition1_ (>|<|=|!=|>=|<=) _condition2_ (returns a 0/1 condition)
+* search _nameset_ "string"
+* regexsearch _nameset_ "extended POSIX regex"
+* (exists|forall|sum|prod|min|max) _edge_ _condition_ [not yet implemented]
 
 ## Expressions
 (probably more accurately called instructions)
 
-<expression>; <expression>
-if <condition> then <expression> else <expression>
-while <condition> do <expression>
-<edge>
-skip
-accept
-reject
-start <condition>
+* _expression_; _expression_
+* if _condition_ then _expression_ else _expression_
+* while _condition_ do _expression_
+* _edge_
+* skip
+* accept
+* reject
+* start _condition_
 
 ## Edges
 
