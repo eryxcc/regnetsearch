@@ -7,6 +7,7 @@
 #include <queue>
 
 #include "dblp-edge.h"
+#include "parser.h"
 
 using namespace dblp;
 
@@ -17,89 +18,114 @@ long long getVa() {
   return tval.tv_sec * 1000000 + tval.tv_usec;
   }
 
+struct dblpparser: parser {
+
+  dblpparser(std::string _s): parser(_s) {}
+  
+  relation getrelation(std::string s) {
+    static auto allRelations = { rAuthors, rPapers, rWhichjournal, rJPapers, rWhichproc, rPPapers };
+    for(relation x: allRelations) if(x->name == s) return x;
+    return nullptr;
+    }
+  
+  stringtable getstringtable(std::string s) {
+    auto namedTables = {
+      make_pair("authorName", authorNames),
+      make_pair("journalName", journalNames),
+      make_pair("paperTitle", paperTitles),
+      make_pair("proceedingsCode", proceedingsCodes)
+      };
+    for(auto x: namedTables) if(x.first == s) return x.second;
+    return nullptr;
+    }
+  };
+
 int main() {
+
   initSorts();
   printf("Reading the database...\n");
   readDatabases();
   printf("Building the relations...\n");
   buildRelations();
   
-  numtable c, d;
+  std::string s;
   
-  while(true) {  
+  printf("Parsing the expression...\n");
+  int ch;
+  while((ch = getchar()) != -1)
+    s += ch;
+    
+  dblpparser parser(s);
   
-    int af, pfound;
-    
-    printf("Note: search is case-insensitive\n");
-    printf("Precede the name with '/' for regex search (extended POSIX, case insensitive, slower than simple search)\n");
-    
-    do {
-    #ifdef TEST
-      std::string who = "Szymon Torunczyk";
-      printf("Looking for the author...\n");
-    #else
-      std::string who;
-      std::cout << "Center at: "; std::getline(std::cin, who);
-    #endif
-      d = picksearch(authorNames, who);
-      printf("Authors found: %d\n", af = total(d));
-    } while(!af);
-    
-    do {
-      pfound = 0;
-      #ifdef TEST
-      printf("Looking for the paper...\n");
-      std::string topic = "yperbolic";
-      #else
-      std::string topic;
-      std::cout << "Search for topic: "; std::getline(std::cin, topic);
-      #endif
-      c = picksearch(paperTitles, topic);
-      printf("papers found = %d\n", pfound = total(c));
-    } while(pfound == 0);
-    
-  numtable result = make<numtable>(sPaper);
+  expression x;
+  
+  try {
+    x = parser.parseexp();
+    parser.checkend();
+    }
+  catch(parseerror err) {
+    std::cout << parser.display(err) << "\n";
+    exit(1);
+    }
+  
+  printf("Compiling the automaton...\n");
 
-  // expression x = (cond(c, accept(result), papers >> authors) * 10) >> reject;
-  expression x = rPapers >> (cond(c, accept(result), rAuthors >> rPapers)) * 10 >> reject;
-  
   allstates.clear();
-  auto p = x->compile(sAuthor);
+  auto p = x->compile(nosort);
   if(p.finish != noleave) {
     printf("Error: leaves\n");
     exit(1);
     }
   
+  printf("Optimizing the automaton...\n");
+
+    for(state s: allstates) {
+      auto ss = std::dynamic_pointer_cast<sStart> (s);
+      if(ss) {
+        printf("Check the start state\n");
+        for(int i=0; i<ss->distr->ds->qty; i++)
+          if(ss->distr->val[i]) printf("%d: %lf\n", i, ss->distr->val[i]);
+        }
+      }    
+
+
   for(state s: allstates) s->optimize();
   
   auto st = allstates.begin();
   for(state s: allstates) if(!s->getskip()) *(st++) = s;
   while(allstates.end() != st) allstates.pop_back();
 
+  printf("Activating states...\n");
+
   for(state s: allstates) s->activate();
 
   printf("states in the automaton = %d\n", (int) allstates.size());
   for(state s: allstates) {
-    if(&*s) std::cout << s << ": " << *s << ", [" << s->ds->name << "]\n";
+    if(&*s) std::cout << s << ": " << *s;
+    if(s->ds) std::cout << ", [" << s->ds->name << "]";
+    std::cout << "\n";
     }
   std::cout << "start state = " << p.start << "\n";
-
-    int precint;
-#ifdef TEST
-    precint = 4;
-#else
-    std::cout << "Precision (0=quick, 4=nice): "; std::cin >> precint;
-    std::string junk; std::getline(std::cin, junk);
-#endif
+  
+  if(1) {
+    int precint = 4;
     double prec = pow(.1, precint);
   
-    result->clear();
     int N = allstates.size();
     int ms[N];
     for(int i=0; i<N; i++) ms[i] = 0;
-    
-    for(int i=0; i<d->ds->qty; i++)
-      queues::add(p.start, i, d->val[i]);
+
+    for(state s: allstates) {
+      auto ss = std::dynamic_pointer_cast<sStart> (s);
+      if(ss) {
+        printf("Doing the start state\n");
+        for(int i=0; i<ss->startstate->ds->qty; i++)
+          if(ss->distr->val[i]) printf("%d: %lf\n", i, ss->distr->val[i]);
+        for(int i=0; i<ss->startstate->ds->qty; i++)
+          queues::add(ss->startstate, i, ss->distr->val[i]);
+        }
+      }    
+
     queues::run();
   
     long long zero = getVa();
@@ -128,13 +154,18 @@ int main() {
   
     for(int i=0; i<N; i++) 
       std::cout << allstates[i] << ": " << ms[i] << "\n";
+      
+    for(state s: allstates) {
+      typedef std::shared_ptr<sAccept> acceptstate;
+      acceptstate sa = std::dynamic_pointer_cast<sAccept> (s);
+      if(sa) {
+        if(sa->distr->ds == sPaper)
+          present(sa->distr, paperTitles, rAuthors, authorNames);
+        else
+          present(sa->distr, authorNames, nullptr, nullptr);
+        }
+      }    
     
-    present(result, paperTitles, rAuthors, authorNames);
-
-#ifdef TEST
-    break;
-#endif
     }
-  
   return 0;
   }

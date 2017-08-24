@@ -6,13 +6,14 @@
 namespace regnetsearch {
 
   // exceptions
-  struct wrong_sort : std::exception { };
+  struct wrong_sort : std::exception { dbsort d1; dbsort d2; 
+    wrong_sort(dbsort _d1, dbsort _d2) : d1(_d1), d2(_d2) {} };
 
   dbsort unify(dbsort d1, dbsort d2) {
     if(!d1) return d2;
     if(!d2) return d1;
     if(d1==d2) return d1;
-    throw wrong_sort();
+    throw wrong_sort(d1,d2);
     }  
   
   // compilation result
@@ -50,15 +51,16 @@ namespace regnetsearch {
   // random choice
   
   struct xRandom : xBase {
+    double p;
     expression e1, e2;
-    xRandom(expression _e1, expression _e2) : e1(_e1), e2(_e2) {}
+    xRandom(double _p, expression _e1, expression _e2) : p(_p), e1(_e1), e2(_e2) {}
 
     stateinfo compile(dbsort ds) {
       state& s = reserve_state();
       auto a1 = e1->compile(ds);
       auto a2 = e2->compile(ds);
       
-      s = std::make_shared<sRandom> (.5, a1.start, a2.start);
+      s = std::make_shared<sRandom> (p, a1.start, a2.start);
       s->ds = ds;
 
       auto finish = register_skip();
@@ -70,7 +72,7 @@ namespace regnetsearch {
     };
   
   expression operator | (expression e1, expression e2) {
-    return std::make_shared<xRandom> (e1,e2);
+    return std::make_shared<xRandom> (.5, e1,e2);
     };
   
   // conditional
@@ -82,7 +84,7 @@ namespace regnetsearch {
       c(_c), e1(_eyes), e0(_eno) { }
 
     stateinfo compile(dbsort ds) {
-      if(c->ds != ds) throw wrong_sort();
+      if(c->ds != ds) throw wrong_sort(c->ds, ds);
       
       state& s = reserve_state();
       auto a1 = e1->compile(ds);
@@ -103,6 +105,48 @@ namespace regnetsearch {
     return std::make_shared<xConditional>(c, ey, en);
     }
   
+  // while
+
+  struct xWhile : xBase {
+    numtable c;
+    expression e;
+    xWhile(expression _e, numtable _c) : e(_e), c(_c) {}
+
+    stateinfo compile(dbsort ds) {
+      state& s1 = reserve_state();
+      auto a1 = e->compile(ds);      
+      if(a1.ds && a1.ds != ds) throw wrong_sort(a1.ds, ds);
+            
+      auto outstate = register_skip();
+      
+      s1 = std::make_shared<sConditional> (c, a1.start, outstate);
+      s1->ds = ds;
+      a1.finish->next = s1;
+      
+      return stateinfo { s1, outstate, ds };
+      }
+    };  
+  
+  struct xWhileF : xBase {
+    double c;
+    expression e;
+    xWhileF(expression _e, double _c) : e(_e), c(_c) {}
+
+    stateinfo compile(dbsort ds) {
+      state& s1 = reserve_state();
+      auto a1 = e->compile(ds);      
+      if(a1.ds && a1.ds != ds) throw wrong_sort(a1.ds, ds);
+            
+      auto outstate = register_skip();
+      
+      s1 = std::make_shared<sRandom> (c, a1.start, outstate);
+      s1->ds = ds;
+      a1.finish->next = s1;
+      
+      return stateinfo { s1, outstate, ds };
+      }
+    };  
+  
   // star expression
   
   struct xStar : xBase {
@@ -113,7 +157,7 @@ namespace regnetsearch {
     stateinfo compile(dbsort ds) {
       state& s1 = reserve_state();
       auto a1 = e->compile(ds);      
-      if(a1.ds && a1.ds != ds) throw wrong_sort();
+      if(a1.ds && a1.ds != ds) throw wrong_sort(a1.ds, ds);
             
       auto outstate = register_skip();
       
@@ -139,15 +183,25 @@ namespace regnetsearch {
     };
 
   struct xAccept : xBase {
-    numtable di;
-    xAccept(numtable _d) : di(_d) {}
-
     stateinfo compile(dbsort ds) {
-      if(ds != di->ds) throw wrong_sort();
       state& s = reserve_state();
-      s = std::make_shared<sAccept> (di);
+      s = std::make_shared<sAccept> ();
       s->ds = ds;
       return stateinfo {s, noleave, nosort};
+      }
+    
+    };
+
+  struct xStart : xBase {
+    numtable di;
+    xStart(numtable d) : di(d) { }
+    stateinfo compile(dbsort ds) {
+      if(ds != nosort) throw wrong_sort(ds, nosort);
+      state& s = reserve_state();
+
+      auto outstate = register_skip();
+      s = std::make_shared<sStart> (di, outstate);
+      return stateinfo {s, outstate, di->ds};
       }
     
     };
@@ -162,7 +216,7 @@ namespace regnetsearch {
     };
   
   expression skip = std::make_shared<xSkip> ();
-  expression accept(numtable d) { return std::make_shared<xAccept> (d); }
+  expression accept = std::make_shared<xAccept> ();
   expression reject = std::make_shared<xReject> ();
 
   }

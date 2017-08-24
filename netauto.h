@@ -165,10 +165,17 @@ namespace regnetsearch {
     };
   
   struct sAccept : sBase {
-    sAccept(numtable d) { distr = d; }
-    virtual void activate() { } // distr already set!
     virtual void run() {} 
     virtual void display(std::ostream &os) { os << "accept"; }
+    };
+
+  struct sStart : sBase {
+    state startstate;
+    sStart(numtable di, state _next) { distr = di; startstate = _next; }
+    virtual void activate() {} // d already set!
+    virtual void run() {} 
+    virtual void display(std::ostream &os) { os << "start in " << startstate; }
+    virtual void optimize() { optimizeSkip(startstate); }
     };
 
   struct sReject : sBase {

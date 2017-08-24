@@ -65,6 +65,8 @@ template<class T> struct maker {  };
       [] (char c1, char c2) { return toupper(c1) == toupper(c2); }) != hayend;
     }
   
+  bool among(char c) { return false; }
+  template<class... T> bool among(char c, char x, T... t) { return (c==x) || among(c,t...); }    
   }
 
 #endif

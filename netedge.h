@@ -31,7 +31,7 @@ namespace regnetsearch {
       }
 
     stateinfo compile(dbsort ds) {
-      if(ds != sortfrom) throw wrong_sort();
+      if(ds != sortfrom) throw wrong_sort(sortfrom, ds);
       state& s = reserve_state();
       auto finish = register_skip();
       s = std::make_shared<sEdge> (shared_from_this(), finish);
