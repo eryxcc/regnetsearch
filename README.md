@@ -54,9 +54,9 @@ authorName, journalName, paperTitle, proceedingsCode
 
 ## Example
 
-start search(authorName, "Szymon Torunczyk");
-papers;
-while 0.9 do
-  if search(paperTitle, "hyperbolic") then accept
-  else (authors; papers);
-reject
+    start search(authorName, "Szymon Torunczyk");
+    papers;
+    while 0.9 do
+      if search(paperTitle, "hyperbolic") then accept
+      else (authors; papers);
+    reject
