@@ -2,7 +2,7 @@ all: query-results.txt
 
 .PHONY: compile alldata run all rebuild-data query-results.txt
 
-read-dblp: read-dblp.cpp dblp.h ext.h
+read-dblp: read-dblp.cpp dblp.h ext.h db.h
 	g++ -std=c++1y read-dblp.cpp -o read-dblp -O3
 
 dblp-search: dblp-search.cpp db.h dblp.h netauto.h netregex.h netedge.h dblp-edge.h ext.h parser.h
@@ -26,4 +26,8 @@ compile: dblp-search alldata
 query-results.txt: dblp-search alldata query.txt
 	./dblp-search < query.txt > query-results.txt
 
+read-sscholar: read-sscholar.cpp db.h sscholar.h
+	g++ -std=c++1y read-sscholar.cpp -o read-sscholar -O3
 
+rebuild-data-sscholar: read-sscholar
+	zcat sscholar/papers-*.json.gz | ./read-sscholar
