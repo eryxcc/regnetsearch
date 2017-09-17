@@ -81,7 +81,7 @@ int main() {
 
     for(state s: allstates) {
       auto ss = std::dynamic_pointer_cast<sStart> (s);
-      if(ss) {
+      if(ss && false) {
         printf("Check the start state\n");
         for(int i=0; i<ss->distr->ds->qty; i++)
           if(ss->distr->val[i]) printf("%d: %lf\n", i, ss->distr->val[i]);
@@ -119,8 +119,6 @@ int main() {
       auto ss = std::dynamic_pointer_cast<sStart> (s);
       if(ss) {
         printf("Doing the start state\n");
-        for(int i=0; i<ss->startstate->ds->qty; i++)
-          if(ss->distr->val[i]) printf("%d: %lf\n", i, ss->distr->val[i]);
         for(int i=0; i<ss->startstate->ds->qty; i++)
           queues::add(ss->startstate, i, ss->distr->val[i]);
         }
