@@ -16,7 +16,7 @@ namespace regnetsearch {
     xnumtable(double _d=0) : fixed(_d) {}
     };  
   
-  xnumtable apply(xnumtable x1, xnumtable x2, auto f) {
+  template<class T> xnumtable apply(xnumtable x1, xnumtable x2, T f) {
     if(x1.t && x2.t && unify(x1.t->ds, x2.t->ds)) {
       numtable res = make<numtable>(x1.t->ds);
       for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.t->val[i]);
@@ -33,6 +33,25 @@ namespace regnetsearch {
       return res;
       }
     else return f(x1.fixed, x2.fixed);
+    }
+  
+  template<class T, class U> numtable fold(relation r, xnumtable sub, T zero, U f) {
+    printf("called fold\n");
+    numtable res = make<numtable>(r->sortfrom);
+    int k = 0;
+    for(int i=0; i<res->ds->qty; i++) {
+      res->val[i] = zero;
+      if(sub.t) { 
+        for(; k < r->starts[i+1]; k++)
+          res->val[i] = f(res->val[i], sub.t->val[r->data[k]]);
+        }
+      else {
+        for(; k < r->starts[i+1]; k++)
+          res->val[i] = f(res->val[i], sub.fixed);
+        }
+      }
+    printf("fold done\n");
+    return res;  
     }
   
   xnumtable operator +(xnumtable x1, xnumtable x2) {
@@ -93,81 +112,19 @@ namespace regnetsearch {
       return s;
       }
     
-    xnumtable parseval(int prio = 0) {
+    xnumtable parseval(int prio = 0);
+
+    xnumtable parsequantifier(auto zero, auto f) {
       int p = parsepos;
-      xnumtable d;
       skipwhitespace();
-      if(peek() == '(') { 
-        eat(); d = parseval(); 
-        if(peek() != ')') throw parseerror("expected ')' in numtable", p, parsepos);
-        eat(); 
-        }
-      else if(peek() >= '0' && peek() <= '9' || peek() == '.') {
-        std::string s = "";
-        while(true) {
-          char c = peek();
-          if(peek() >= '0' && peek() <= '9' || peek() == '.') s += c, eat();
-          else break;
-          }
-        d = atof(s.c_str());
-        }
-      else if(peekletter()) {
-        std::string s = readToken();
-        if(s == "search") {
-          skipwhitespace();
-          stringtable st = getstringtable(readToken());
-          if(!st) throw parseerror("expected a string table", p, parsepos);
-          skipwhitespace();
-          std::string s1 = readStringConstant();
-          printf("Searching for %s...\n", s1.c_str());
-          return icasesearch(st, s1);
-          }
-        else if(s == "regexsearch") {
-          skipwhitespace();
-          stringtable st = getstringtable(readToken());
-          if(!st) throw parseerror("expected a string table", p, parsepos);
-          skipwhitespace();
-          std::string s1 = readStringConstant();
-          using namespace std::regex_constants;
-          printf("Searching for %s...\n", s1.c_str());
-          return regexsearch(st, std::regex(s1, icase | extended));
-          }
-        else if(namedNumtable(s, d)) ;
-        else throw parseerror("unexpected keyword while parsing a numtable", p, parsepos);
-        }
-      else throw parseerror("numtable expected", p, parsepos);
+      std::string s = readToken();
+      relation r = getrelation(s);
+      if(!r) throw parseerror("relation expected", p, parsepos);
       skipwhitespace();
-      while(prio <= 1 && among(peek(), '*', '/', '&')) { 
-        char c = eat(); 
-        xnumtable t = parseval(1);
-        if(c == '*' || c == '&') d = d * t; 
-        else d = d / t;
-        skipwhitespace(); 
-        }
-      while(prio <= 0 && among(peek(), '+', '-', '<', '>', '=', '|', '^', '/')) { 
-        int c = eat(); 
-        xnumtable t = parseval(0);
-        static const int LEQ = 300;
-        static const int GEQ = 301;
-        static const int NEQ = 302;
-        if(c == '<' && peek() == '=') { c = LEQ; eat(); }
-        else if(c == '>' && peek() == '=') { c = GEQ; eat(); }
-        else if(c == '/' && peek() == '=') { c = NEQ; eat(); }
-        if(c == '+') d = d + t; 
-        else if(c == '-') d = d - t;
-        else if(c == '|') d = apply(d, t, [] (auto a, auto b) { return a+b-a*b; });
-        else if(c == '^') d = apply(d, t, [] (auto a, auto b) { return std::min(a,b); });
-        else if(c == '>') d = apply(d, t, [] (auto a, auto b) { return a>b; });
-        else if(c == '<') d = apply(d, t, [] (auto a, auto b) { return a<b; });
-        else if(c == '=') d = apply(d, t, [] (auto a, auto b) { return a==b; });
-        else if(c == LEQ) d = apply(d, t, [] (auto a, auto b) { return a<=b; });
-        else if(c == GEQ) d = apply(d, t, [] (auto a, auto b) { return a>=b; });
-        else if(c == NEQ) d = apply(d, t, [] (auto a, auto b) { return a!=b; });
-        skipwhitespace(); 
-        }
-      return d;
+      xnumtable sub = parseval();
+      return fold(r, sub, zero, f);
       }
-    
+        
     expression parseexp(int prio = 0) {
       int p = parsepos;
       expression ex;
@@ -236,6 +193,92 @@ namespace regnetsearch {
       return "Error: " + error.msg + "\n" + s.substr(0, error.at1) + "<*>" + s.substr(error.at1, error.at2-error.at1) + "<*>" + s.substr(error.at2);
       }
     };
+
+
+  xnumtable parser::parseval(int prio) {
+      int p = parsepos;
+      xnumtable d;
+      skipwhitespace();
+      if(peek() == '(') { 
+        eat(); d = parseval(); 
+        if(peek() != ')') throw parseerror("expected ')' in numtable", p, parsepos);
+        eat(); 
+        }
+      else if(peek() >= '0' && peek() <= '9' || peek() == '.') {
+        std::string s = "";
+        while(true) {
+          char c = peek();
+          if(peek() >= '0' && peek() <= '9' || peek() == '.') s += c, eat();
+          else break;
+          }
+        d = atof(s.c_str());
+        }
+      else if(peekletter()) {
+        std::string s = readToken();
+        if(s == "search") {
+          skipwhitespace();
+          stringtable st = getstringtable(readToken());
+          if(!st) throw parseerror("expected a string table", p, parsepos);
+          skipwhitespace();
+          std::string s1 = readStringConstant();
+          printf("Searching for %s...\n", s1.c_str());
+          return icasesearch(st, s1);
+          }
+        else if(s == "sum") 
+          d = parsequantifier(0, [] (auto a, auto b) { return a+b; });
+        else if(s == "forall" || s == "prod") 
+          d = parsequantifier(0, [] (auto a, auto b) { return a*b; });
+        else if(s == "exists") 
+          d = parsequantifier(0, [] (auto a, auto b) { return a+b-a*b; });
+        else if(s == "min") 
+          d = parsequantifier(0, [] (auto a, auto b) { return std::min(a,b); });
+        else if(s == "max") 
+          d = parsequantifier(0, [] (auto a, auto b) { return std::max(a,b); });
+        else if(s == "regexsearch") {
+          skipwhitespace();
+          stringtable st = getstringtable(readToken());
+          if(!st) throw parseerror("expected a string table", p, parsepos);
+          skipwhitespace();
+          std::string s1 = readStringConstant();
+          using namespace std::regex_constants;
+          printf("Searching for %s...\n", s1.c_str());
+          d = regexsearch(st, std::regex(s1, icase | extended));
+          }
+        else if(namedNumtable(s, d)) ;
+        else throw parseerror("unexpected keyword while parsing a numtable", p, parsepos);
+        }
+      else throw parseerror("numtable expected", p, parsepos);
+      skipwhitespace();
+      while(prio <= 1 && among(peek(), '*', '/', '&')) { 
+        char c = eat(); 
+        xnumtable t = parseval(1);
+        if(c == '*' || c == '&') d = d * t; 
+        else d = d / t;
+        skipwhitespace(); 
+        }
+      while(prio <= 0 && among(peek(), '+', '-', '<', '>', '=', '|', '^', '/')) { 
+        int c = eat(); 
+        xnumtable t = parseval(0);
+        static const int LEQ = 300;
+        static const int GEQ = 301;
+        static const int NEQ = 302;
+        if(c == '<' && peek() == '=') { c = LEQ; eat(); }
+        else if(c == '>' && peek() == '=') { c = GEQ; eat(); }
+        else if(c == '/' && peek() == '=') { c = NEQ; eat(); }
+        if(c == '+') d = d + t; 
+        else if(c == '-') d = d - t;
+        else if(c == '|') d = apply(d, t, [] (auto a, auto b) { return a+b-a*b; });
+        else if(c == '^') d = apply(d, t, [] (auto a, auto b) { return std::min(a,b); });
+        else if(c == '>') d = apply(d, t, [] (auto a, auto b) { return a>b; });
+        else if(c == '<') d = apply(d, t, [] (auto a, auto b) { return a<b; });
+        else if(c == '=') d = apply(d, t, [] (auto a, auto b) { return a==b; });
+        else if(c == LEQ) d = apply(d, t, [] (auto a, auto b) { return a<=b; });
+        else if(c == GEQ) d = apply(d, t, [] (auto a, auto b) { return a>=b; });
+        else if(c == NEQ) d = apply(d, t, [] (auto a, auto b) { return a!=b; });
+        skipwhitespace(); 
+        }
+      return d;
+      }
 
   }
   
