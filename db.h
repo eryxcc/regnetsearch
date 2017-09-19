@@ -131,9 +131,14 @@ namespace regnetsearch {
     }
   
   numtable icasesearch(stringtable st, const std::string& s) {
-    numtable result = make<numtable> (st->ds);    
-    for(int i=0; i<st->ds->qty; i++) 
-      result->val[i] = ext::isearch(st->get(i), s) ? 1 : 0;
+    numtable result = make<numtable> (st->ds);
+    int total = 0;
+    for(int i=0; i<st->ds->qty; i++) {
+      auto b = ext::isearch(st->get(i), s);
+      if(b) total++;
+      result->val[i] = b ? 1 : 0;
+      }
+    printf("total found = %d\n", total);
     return result;
     }
   
