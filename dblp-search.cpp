@@ -6,7 +6,8 @@
 #include <cmath>
 #include <queue>
 
-#include "dblp-edge.h"
+#include "dblp.h"
+#include "netedge.h"
 #include "parser.h"
 
 using namespace dblp;
@@ -18,6 +19,14 @@ long long getVa() {
   return tval.tv_sec * 1000000 + tval.tv_usec;
   }
 
+static relation rAuthors, rPapers, rWhichjournal, rJPapers, rWhichproc, rPPapers;
+
+void buildRelations() {
+  readEdges(sPaper, sAuthor, rAuthors, "authors", rPapers, "papers", paperAuthor);
+  readEdges(sPaper, sJournal, rWhichjournal, "whichjournal", rJPapers, "jpapers", paperJournal);
+  readEdges(sPaper, sProcs, rWhichproc, "whichproc", rPPapers, "ppapers", paperProceedings);
+  }
+
 struct dblpparser: parser {
 
   dblpparser(std::string _s): parser(_s) {}
@@ -26,6 +35,24 @@ struct dblpparser: parser {
     static auto allRelations = { rAuthors, rPapers, rWhichjournal, rJPapers, rWhichproc, rPPapers };
     for(relation x: allRelations) if(x->name == s) return x;
     return nullptr;
+    }
+
+  virtual bool namedNumtable(std::string s, xnumtable& d) { 
+    if(s == "paperYear") { 
+      auto res = make<numtable> (sPaper);    
+      for(int i=0; i<sPaper->qty; i++)
+        res->val[i] = paperyears->val[i];
+      d = res;
+      return true;
+      }
+    if(s == "paperType") { 
+      auto res = make<numtable> (sPaper);    
+      for(int i=0; i<sPaper->qty; i++)
+        res->val[i] = papertypes->val[i];
+      d = res;
+      return true;
+      }
+    return false;
     }
   
   stringtable getstringtable(std::string s) {
@@ -158,9 +185,18 @@ int main() {
       acceptstate sa = std::dynamic_pointer_cast<sAccept> (s);
       if(sa) {
         if(sa->distr->ds == sPaper)
-          present(sa->distr, paperTitles, rAuthors, authorNames);
-        else
-          present(sa->distr, authorNames, nullptr, nullptr);
+          present(sa->distr, 
+            viewTable(paperTitles),
+            viewTable(paperyears, "year: "),
+            viewTable(papertypes, "type: "),
+            viewEdge(rAuthors, "authors:", viewTable(authorNames)),
+            viewEdge(rWhichjournal, "journal:", viewTable(journalNames))
+            );
+        else if(sa->distr->ds == sAuthor)
+          present(sa->distr, 
+            viewTable(authorNames),
+            viewEdge(rPapers, "papers:", viewTable(paperTitles))
+            );
         }
       }    
     

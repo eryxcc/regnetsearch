@@ -86,8 +86,50 @@ namespace regnetsearch {
       d = 0;
       }
     }
+  
+  int indent = 0;
+  
+  void printIndent() { for(int i=0; i<indent; i++) printf(" "); }
+  
+  template<class T, class... Ts> void present1(dbsort ds, int id, T t, Ts... ts) {
+    t(ds, id);
+    present1(ds, id, ts...);
+    }
 
-  void present(numtable c, stringtable s, relation r, stringtable s2) {
+  void present1(dbsort ds, int id) {}
+  
+  auto viewTable(stringtable s, std::string title = "") {
+    return [s, title] (dbsort ds, int id) {
+      printIndent();
+      if(ds != s->ds) printf("bad sort in viewTable\n");
+      else printf("%s%s\n", title.c_str(), s->get(id));
+      };
+    }
+
+  template<class T> auto viewTable(podtable<T> s, std::string title = "") {
+    return [s, title] (dbsort ds, int id) {
+      printIndent();
+      if(ds != s->ds) printf("bad sort in viewTable\n");
+      else std::cout << title << s->val[id] << "\n";
+      };
+    }
+  
+  template<class... Ts> auto viewEdge(relation r, std::string title, Ts... ts) {
+    return [r, title, ts...] (dbsort ds, int id) {
+      if(title != "") {
+        printIndent(); printf("%s\n", title.c_str());
+        indent += 2;
+        }
+      if(ds != r->sortfrom) { printIndent(); printf("bad sort in viewEdge\n"); }
+      else for(int i=r->starts[id]; i<r->starts[id+1]; i++) {
+        int id2 = r->data[i];
+        present1(r->sortto, id2, ts...);
+        }
+      if(title != "") indent -= 2;
+      };
+    }
+  
+  template<class... T> void present(numtable c, T... t) {
     dbsort ds = c->ds;
     std::vector<int> order;
     for(int i=0; i<ds->qty; i++) 
@@ -96,15 +138,11 @@ namespace regnetsearch {
       return c->val[i] > c->val[j]; });
     for(int a=0; a<40 && a<(int) order.size(); a++) {    
       int o = order[a];
-      printf("%3d. %8.6lf %s", a+1, c->val[o], s->get(o));
-      if(r && r->sortfrom == ds) {
-        printf(":");
-        for(int i=r->starts[o]; i<r->starts[o+1]; i++) {
-          int o2 = r->data[i];
-          printf(" %s", s2->get(o2));
-          }
-        }
-      printf("\n");
+      printIndent();
+      printf("#### %3d. %8.6lf #%d\n", a+1, c->val[o], o);
+      indent += 2;
+      present1(ds, o, t...);
+      indent -= 2;
       }
     }  
 
@@ -122,9 +160,10 @@ namespace regnetsearch {
     back->starts.resize(s2->qty+1);
     back->data.resize(e);
     
-    for(auto& p: db.edges) 
+    for(auto& p: db.edges) {
       straight->starts[p.first]++,
       back->starts[p.second]++;
+      }
     
     int cum;
     
