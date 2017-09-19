@@ -29,6 +29,7 @@ x^y is min(x,y)
 * search _nameset_ "string"
 * regexsearch _nameset_ "extended POSIX regex"
 * (exists|forall|sum|prod|min|max) _edge_ _condition_ [not yet implemented]
+* _table_
 
 ## Expressions
 (probably more accurately called instructions)
@@ -42,15 +43,38 @@ x^y is min(x,y)
 * reject
 * start _condition_
 
-## Edges
+## DBLP database
+
+### Edges
 
 authors, papers
 whichjournal, jpapers
 whichproc, ppapers
 
-## Name sets
+### Name sets
 
 authorName, journalName, paperTitle, proceedingsCode
+
+### Tables 
+
+paperYear, paperType
+
+## Semantic Scholar database
+
+### Edges
+
+authors, papers
+whichvenue, vpapers
+cites, citedby
+keyphrases, kpapers
+
+### Name sets
+
+authorName, paperTitle, proceedingsCode, venue, keyphrase, paperId
+
+### Tables 
+
+paperYear
 
 ## Example
 

@@ -5,7 +5,7 @@ all: query-results.txt
 read-dblp: read-dblp.cpp dblp.h ext.h db.h
 	g++ -std=c++1y read-dblp.cpp -o read-dblp -O3
 
-dblp-search: dblp-search.cpp db.h dblp.h netauto.h netregex.h netedge.h dblp-edge.h ext.h parser.h
+dblp-search: dblp-search.cpp db.h dblp.h netauto.h netregex.h netedge.h ext.h parser.h
 	g++ -std=c++1y dblp-search.cpp -o dblp-search -O3
 
 alldata: data/authors.sdb data/journals.sdb data/paper-author.edb data/paper-journal.edb data/paper-proceedings.edb data/papers.sdb data/paper-types.db data/paper-years.db data/proceedings.sdb
@@ -31,3 +31,10 @@ read-sscholar: read-sscholar.cpp db.h sscholar.h
 
 rebuild-data-sscholar: read-sscholar
 	zcat sscholar/papers-*.json.gz | ./read-sscholar
+
+rebuild-data-sscholar-t: read-sscholar
+	zcat sscholar/papers-*.json.gz | /usr/bin/time ./read-sscholar
+
+sscholar-search: sscholar-search.cpp db.h sscholar.h netauto.h netregex.h netedge.h ext.h parser.h
+	g++ -std=c++1y sscholar-search.cpp -o sscholar-search -O3
+

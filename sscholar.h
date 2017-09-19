@@ -24,32 +24,23 @@ namespace sscholar {
     }
   
   void readDatabases() {
-    binread("data-sscholar/papers.sdb", paperTitles, sPaper);
-    binread("data-sscholar/authors.sdb", authorNames, sAuthor);
     binread("data-sscholar/id-paper.sdb", paperIds, sPaper);
-    binread("data-sscholar/id-author.sdb", authorIds, sAuthor);
-    
+    binread("data-sscholar/paper-citations.edb", citations);
+
+    binread("data-sscholar/papers.sdb", paperTitles, sPaper);
+
+    binread("data-sscholar/authors.sdb", authorNames, sAuthor);    
     binread("data-sscholar/paper-author.edb", paperAuthor);
     
     binread("data-sscholar/paper-years.db", paperyears, sPaper);
+
+    binread("data-sscholar/venues.sdb", venues, sVenue);    
+    binread("data-sscholar/paper-venue.edb", paperVenue);
+
+    binread("data-sscholar/keyphrases.sdb", keyphrases, sKey);    
+    binread("data-sscholar/paper-keyphrases.edb", paperKeyphrase);
     }
   
-  void writeDatabases() {
-    binwrite("data-sscholar/papers.sdb", paperTitles);
-    binwrite("data-sscholar/authors.sdb", authorNames);
-    binwrite("data-sscholar/id-paper.sdb", paperIds);
-    binwrite("data-sscholar/id-author.sdb", authorIds);
-    binwrite("data-sscholar/keyphrases.db", keyphrases);
-    binwrite("data-sscholar/venues.db", venues);
-
-    binwrite("data-sscholar/paper-author.edb", paperAuthor);
-    binwrite("data-sscholar/paper-keyphrases.edb", paperKeyphrase);
-    binwrite("data-sscholar/paper-venue.edb", paperVenue);
-    binwrite("data-sscholar/paper-citations.edb", citations);
-
-    binwrite("data-sscholar/paper-years.db", paperyears);
-    }
-
   }
 
 #endif
