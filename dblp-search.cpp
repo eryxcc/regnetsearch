@@ -10,6 +10,8 @@
 #include "netedge.h"
 #include "parser.h"
 
+#define QLEVELS 21
+
 using namespace dblp;
 
 static relation rAuthors, rPapers, rWhichjournal, rJPapers, rWhichproc, rPPapers;

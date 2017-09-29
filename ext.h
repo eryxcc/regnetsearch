@@ -76,7 +76,11 @@ template<class T> struct maker {  };
     return tval.tv_sec * 1000000 + tval.tv_usec;
     }
 
+#ifdef NO_THREADS
+  constexpr int threads = 1;
+#else
   int threads;
+#endif
 
   void init_threads() {
 #ifndef NO_THREADS
@@ -95,12 +99,27 @@ template<class T> struct maker {  };
     return action(0,N);
 #else
     if(!threads) init_threads();
+    if(threads == 1) return action(0,N);
     std::vector<std::thread> v;
     typedef decltype(action(0,0)) Res;
     std::vector<Res> results(threads);
+#ifdef THREADSTATS
+    std::vector<long long> times(threads);
+#endif
     for(int k=0; k<threads; k++)
-      v.emplace_back([&,k] () { results[k] = action(N*k/threads, N*(k+1)/threads); });
+      v.emplace_back([&,k] () { 
+        long long t = getVa();
+        results[k] = action(N*k/threads, N*(k+1)/threads); 
+#ifdef THREADSTATS
+        times[k] = getVa()-t; 
+#endif
+        });
     for(std::thread& t:v) t.join();
+#ifdef THREADSTATS
+    long long maxt = 0;
+    for(int k=0; k<threads; k++) maxt = std::max(times[k], maxt);
+    for(int k=0; k<threads; k++) printf("%4d", times[k] * 100 / maxt); printf(" :: %dus\n", int(maxt));
+#endif
     Res res = 0;
     for(Res r: results) res += r;
     return res;

@@ -54,8 +54,8 @@ namespace regnetsearch {
   
   namespace queues {
     using std::queue;
-
-    int getclass(double d) { return std::max(std::ilogb(d) + 21, 0); }
+    
+    int getclass(double d) { return std::max(std::ilogb(d) + QLEVELS, 0); }
     
     #define MAXQ 64
     

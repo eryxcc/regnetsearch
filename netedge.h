@@ -9,6 +9,8 @@ namespace regnetsearch {
 
   struct xEdge;
 
+  typedef std::shared_ptr<xEdge> relation;
+  
   struct sEdge : sBase {
     std::shared_ptr<xEdge> e;
     state next;
@@ -22,6 +24,7 @@ namespace regnetsearch {
   struct xEdge : xBase, std::enable_shared_from_this<xEdge> {
     dbsort sortfrom, sortto;
     std::string name;
+    relation reversed;
     
     std::vector<int> starts;
     std::vector<int> data;
@@ -40,8 +43,6 @@ namespace regnetsearch {
       }
     };
   
-  typedef std::shared_ptr<xEdge> relation;
-  
   relation makeedge(dbsort s1, dbsort s2, const std::string& name) { 
     return std::make_shared<xEdge>(s1, s2, name);
     }
@@ -52,43 +53,52 @@ namespace regnetsearch {
     lastenergy = energy;
     auto& dn = next->distr->val;
     auto& dh = distr->val;
-    auto& est = e->starts;
-    auto& edt = e->data;
-    auto p0 = edt.begin();
 
-    energy = ext::parallelize(ds->qty, [&] (int a, int b) {
-      double en = 0;
-      auto p = p0 + est[a];
-      for(int i=a; i<b; i++) {
-        int st0 = est[i];
-        int st1 = est[i+1];
-        if(st0 != st1) {
-          double&d = dh[i];
-          en += fabs(d);
-          d /= st1-st0;
-          for(int st=st0; st<st1; st++) {
-            int v = *(p++);
-            dn[v] += d;
-            }
-          d = 0;
+    if(ext::threads == 0) {
+      auto& est = e->starts;
+      auto& edt = e->data;
+      auto p = edt.begin();
+      for(int i=0; i<ds->qty; i++) {
+         int st0 = est[i];
+         int st1 = est[i+1];
+         if(st0 != st1) {
+           double&d = dh[i];
+           energy += fabs(d);
+           d /= st1-st0;
+           for(int st=st0; st<st1; st++) {
+             int v = *(p++);
+             dn[v] += d;
+             }
+           d = 0;
+           }
+         }
+      }
+    else {
+      energy = ext::parallelize(ds->qty, [&] (int a, int b) {
+        auto& est = e->starts;
+        double en = 0;
+        for(int i=a; i<b; i++) {
+          int d = est[i+1] - est[i];
+          if(d) en += dh[i], dh[i] /= d;
           }
-        }
-      return en;
-      });
-/* for(int i=0; i<ds->qty; i++) {
-      int st0 = est[i];
-      int st1 = est[i+1];
-      if(st0 != st1) {
-        double&d = dh[i];
-        energy += fabs(d);
-        d /= st1-st0;
-        for(int st=st0; st<st1; st++) {
-          int v = *(p++);
-          dn[v] += d;
+        return en;
+        });
+      ext::parallelize(next->ds->qty, [&] (int a, int b) {
+        auto& rest = e->reversed->starts;
+        auto& redt = e->reversed->data;
+        for(int i=a; i<b; i++) {
+          int st0 = rest[i];
+          int st1 = rest[i+1];
+          for(; st0<st1; st0++) 
+            dn[i] += dh[redt[st0]];
           }
-        d = 0;
-        }
-      } */
+        return 0;
+        });
+      ext::parallelize(ds->qty, [&] (int a, int b) {
+        for(int i=a; i<b; i++) dh[i] = 0;
+        return 0;
+        });
+      }
     filled = false;
     next->filled = true;
     }
@@ -177,8 +187,10 @@ namespace regnetsearch {
 
     straight->starts.resize(s1->qty+1);
     straight->data.resize(e);
+    straight->reversed = back;
     back->starts.resize(s2->qty+1);
     back->data.resize(e);
+    back->reversed = straight;
     
     for(auto& p: db.edges) {
       straight->starts[p.first]++,

@@ -6,6 +6,8 @@
 #include <cmath>
 #include <queue>
 
+#define QLEVELS 16 // more appropriate for concurrency
+
 #include "sscholar.h"
 #include "netedge.h"
 #include "parser.h"
@@ -140,16 +142,33 @@ int main() {
     int ms[N];
     for(int i=0; i<N; i++) ms[i] = 0;
 
-    for(state s: allstates) {
-      auto ss = std::dynamic_pointer_cast<sStart> (s);
-      if(ss) {
-        printf("Doing the start state\n");
-        for(int i=0; i<ss->startstate->ds->qty; i++)
-          queues::add(ss->startstate, i, ss->distr->val[i]);
-        }
-      }    
-
-    queues::run();
+    if(1) {
+      printf("Start optimization loading...\n");
+      for(state s: allstates) {
+        auto ss = std::dynamic_pointer_cast<sStart> (s);
+        if(ss) {
+          printf("Doing the start state\n");
+          for(int i=0; i<ss->startstate->ds->qty; i++)
+            queues::add(ss->startstate, i, ss->distr->val[i]);
+          }
+        }    
+  
+      printf("Start optimization running...\n");
+      queues::run();
+      printf("Start optimization complete\n");
+      }
+    else {
+      printf("Loading the start states\n");
+      for(state s: allstates) {
+        auto ss = std::dynamic_pointer_cast<sStart> (s);
+        if(ss) {
+          ext::parallelize(ss->startstate->ds->qty, [&] (int a, int b) {
+            for(int i=a; i<b; i++) ss->startstate->distr->val[i] += ss->distr->val[i];
+            return 0;
+            });
+          }
+        }    
+      }
   
     long long zero = getVa();
     
