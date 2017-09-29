@@ -12,13 +12,6 @@
 
 using namespace dblp;
 
-#include <sys/time.h>
-long long getVa() {
-  struct timeval tval;
-  gettimeofday(&tval, NULL);
-  return tval.tv_sec * 1000000 + tval.tv_usec;
-  }
-
 static relation rAuthors, rPapers, rWhichjournal, rJPapers, rWhichproc, rPPapers;
 
 void buildRelations() {

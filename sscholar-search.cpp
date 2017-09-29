@@ -12,13 +12,6 @@
 
 using namespace sscholar;
 
-#include <sys/time.h>
-long long getVa() {
-  struct timeval tval;
-  gettimeofday(&tval, NULL);
-  return tval.tv_sec * 1000000 + tval.tv_usec;
-  }
-
 static relation rAuthors, rPapers, rWhichvenue, rVPapers, rCites, rCitedBy, rKeyphrases, rKPapers;
 
 
@@ -69,13 +62,16 @@ int main() {
 
   initSorts();
   printf("Reading the database...\n");
+  fflush(stdout);
   readDatabases();
   printf("Building the relations...\n");
+  fflush(stdout);
   buildRelations();
   
   std::string s;
   
   printf("Parsing the expression...\n");
+  fflush(stdout);
   int ch;
   while((ch = getchar()) != -1)
     s += ch;
@@ -94,6 +90,7 @@ int main() {
     }
   
   printf("Compiling the automaton...\n");
+  fflush(stdout);
 
   allstates.clear();
   auto p = x->compile(nosort);
@@ -103,6 +100,7 @@ int main() {
     }
   
   printf("Optimizing the automaton...\n");
+  fflush(stdout);
 
     for(state s: allstates) {
       auto ss = std::dynamic_pointer_cast<sStart> (s);
@@ -121,6 +119,7 @@ int main() {
   while(allstates.end() != st) allstates.pop_back();
 
   printf("Activating states...\n");
+  fflush(stdout);
 
   for(state s: allstates) s->activate();
 
@@ -131,6 +130,7 @@ int main() {
     std::cout << "\n";
     }
   std::cout << "start state = " << p.start << "\n";
+  fflush(stdout);
   
   if(1) {
     int precint = 4;
@@ -164,6 +164,7 @@ int main() {
         }
       double energy = 0;
       int i = 0;
+      for(state& s: allstates) if(s->filled) s->energy = 0;
       for(state& s: allstates) if(s->filled) {
         auto t1 = getVa();
         s->run();
@@ -173,6 +174,7 @@ int main() {
         }
       std::cout << "Iteration #" << it << ": " << energy << " | " << getVa()-zero << "\n";
       if(energy < prec) break;
+      fflush(stdout);
       }
   
     for(int i=0; i<N; i++) 

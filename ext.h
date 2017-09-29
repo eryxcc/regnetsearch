@@ -5,6 +5,8 @@
 
 #include <memory>
 #include <cctype>
+#include <sys/time.h>
+#include <thread>
 
 namespace ext {
 
@@ -67,6 +69,43 @@ template<class T> struct maker {  };
   
   bool among(char c) { return false; }
   template<class... T> bool among(char c, char x, T... t) { return (c==x) || among(c,t...); }    
+
+  long long getVa() {
+    struct timeval tval;
+    gettimeofday(&tval, NULL);
+    return tval.tv_sec * 1000000 + tval.tv_usec;
+    }
+
+  int threads;
+
+  void init_threads() {
+#ifndef NO_THREADS
+    char* t = getenv("THREADCOUNT");
+    if(!t) threads = 1;
+    else {
+      threads = atoi(t);
+      if(threads < 1 || threads > 128) 
+        threads = 1;
+      }
+#endif
+    }
+  
+  template<class T> auto parallelize(long long N, T action) {
+#ifdef NO_THREADS
+    return action(0,N);
+#else
+    if(!threads) init_threads();
+    std::vector<std::thread> v;
+    typedef decltype(action(0,0)) Res;
+    std::vector<Res> results(threads);
+    for(int k=0; k<threads; k++)
+      v.emplace_back([&,k] () { results[k] = action(N*k/threads, N*(k+1)/threads); });
+    for(std::thread& t:v) t.join();
+    Res res = 0;
+    for(Res r: results) res += r;
+    return res;
+#endif
+    }
   }
 
 #endif

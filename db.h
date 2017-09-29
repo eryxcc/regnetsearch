@@ -125,20 +125,31 @@ namespace regnetsearch {
   
   numtable regexsearch(stringtable st, const std::regex& r) {
     numtable result = make<numtable> (st->ds);    
-    for(int i=0; i<st->ds->qty; i++)
-      result->val[i] = std::regex_search(st->get(i), r) ? 1 : 0;
+    int total0 = ext::parallelize(st->ds->qty, [&] (int a, int b) {
+      int total = 0;
+      for(int i=a; i<b; i++) {
+        auto b = std::regex_search(st->get(i), r);
+        if(b) total++;
+        result->val[i] = b ? 1 : 0;
+        }
+      return total;
+      });
+    printf("total found = %d\n", total0);
     return result;
     }
   
   numtable icasesearch(stringtable st, const std::string& s) {
     numtable result = make<numtable> (st->ds);
-    int total = 0;
-    for(int i=0; i<st->ds->qty; i++) {
-      auto b = ext::isearch(st->get(i), s);
-      if(b) total++;
-      result->val[i] = b ? 1 : 0;
-      }
-    printf("total found = %d\n", total);
+    int total0 = ext::parallelize(st->ds->qty, [&] (int a, int b) {
+      int total = 0;
+      for(int i=a; i<b; i++) {
+        auto b = ext::isearch(st->get(i), s);
+        if(b) total++;
+        result->val[i] = b ? 1 : 0;
+        }
+      return total;
+      });
+    printf("total found = %d\n", total0);
     return result;
     }
   
