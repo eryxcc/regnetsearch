@@ -49,13 +49,33 @@ namespace regnetsearch {
   void sEdge::display(std::ostream &os) { os << "edge " << e->name << " -> " << next; }
 
   void sEdge::run() {
-    lastenergy = energy; energy = 0;
+    lastenergy = energy;
     auto& dn = next->distr->val;
     auto& dh = distr->val;
     auto& est = e->starts;
     auto& edt = e->data;
-    auto p = edt.begin();
-    for(int i=0; i<ds->qty; i++) {
+    auto p0 = edt.begin();
+
+    energy = ext::parallelize(ds->qty, [&] (int a, int b) {
+      double en = 0;
+      auto p = p0 + est[a];
+      for(int i=a; i<b; i++) {
+        int st0 = est[i];
+        int st1 = est[i+1];
+        if(st0 != st1) {
+          double&d = dh[i];
+          en += fabs(d);
+          d /= st1-st0;
+          for(int st=st0; st<st1; st++) {
+            int v = *(p++);
+            dn[v] += d;
+            }
+          d = 0;
+          }
+        }
+      return en;
+      });
+/* for(int i=0; i<ds->qty; i++) {
       int st0 = est[i];
       int st1 = est[i+1];
       if(st0 != st1) {
@@ -68,7 +88,7 @@ namespace regnetsearch {
           }
         d = 0;
         }
-      }
+      } */
     filled = false;
     next->filled = true;
     }
@@ -136,7 +156,7 @@ namespace regnetsearch {
       if(c->val[i]) order.push_back(i);
     sort(order.begin(), order.end(), [c] (int i, int j) {
       return c->val[i] > c->val[j]; });
-    for(int a=0; a<40 && a<(int) order.size(); a++) {    
+    for(int a=0; a<200 && a<(int) order.size(); a++) {    
       int o = order[a];
       printIndent();
       printf("#### %3d. %8.6lf #%d\n", a+1, c->val[o], o);

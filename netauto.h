@@ -21,13 +21,27 @@ namespace regnetsearch {
       if(!energy) return;
       eigen = distr->val;
       double factor = energy / (lastenergy - energy);
+#ifdef NOTHREADS
       auto it = distr->val.begin();
       for(double& d: eigen) *(it++) += (d *= factor);
+#else
+      ext::parallelize(ds->qty, [&] (int a, int b) {
+        for(int i=a; i<b; i++) distr->val[i] += (eigen[i] *= factor);
+        return 0;
+        });
+#endif
       }
     virtual void quickoff() {
       if(eigen.empty()) return;
+#ifdef NOTHREADS
       auto it = distr->val.begin();
       for(double& d: eigen) *(it++) -= d;
+#else
+      ext::parallelize(ds->qty, [&] (int a, int b) {
+        for(int i=a; i<b; i++) distr->val[i] -= eigen[i];
+        return 0;
+        });
+#endif
       eigen.clear();
       }
     virtual void run() {}
@@ -110,18 +124,22 @@ namespace regnetsearch {
     sConditional(numtable _c, state _yes, state _no) : c(_c), yes(_yes), no(_no) { ds = c->ds; }
     virtual void display(std::ostream &os) { os << c << " ? " << yes << ":" << no; }
     void run() {
-      lastenergy = energy; energy = 0;
+      lastenergy = energy;
       auto& dyes = yes->distr->val;
       auto& dno = no->distr->val;
       auto& co = c->val;
       auto& dh = distr->val;
-      for(int i=0; i<ds->qty; i++) {
-        double& d = dh[i];
-        energy += fabs(d);
-        dyes[i] += co[i] * d;
-        dno[i] += (1-co[i]) * d;
-        d = 0;
-        }
+      energy = ext::parallelize(ds->qty, [&] (int a, int b) {
+        double en = 0;      
+        for(int i=a; i<b; i++) {
+          double& d = dh[i];
+          en += fabs(d);
+          dyes[i] += co[i] * d;
+          dno[i] += (1-co[i]) * d;
+          d = 0;
+          }
+        return en;
+        });
       filled = false;
       yes->filled = no->filled = true;
       }
@@ -141,17 +159,21 @@ namespace regnetsearch {
     sRandom(double ch, state _yes, state _no) : chance(ch), yes(_yes), no(_no) { }
     virtual void display(std::ostream &os) { os << chance << " ? " << yes << ":" << no; }
     void run() {
-      lastenergy = energy; energy = 0;
+      lastenergy = energy;
       auto& dyes = yes->distr->val;
       auto& dno = no->distr->val;
       auto& dh = distr->val;
-      for(int i=0; i<ds->qty; i++) {
-        double& d = dh[i];
-        energy += fabs(d);
-        dyes[i] += chance * d;
-        dno[i] += (1-chance) * d;
-        d = 0;
-        }
+      energy = ext::parallelize(ds->qty, [&] (int a, int b) {
+        double en = 0;
+        for(int i=a; i<b; i++) {
+          double& d = dh[i];
+          en += fabs(d);
+          dyes[i] += chance * d;
+          dno[i] += (1-chance) * d;
+          d = 0;
+          }
+        return en;
+        });
       filled = false;
       yes->filled = no->filled = true;
       }
