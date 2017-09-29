@@ -29,10 +29,13 @@ query-results.txt: dblp-search alldata query.txt
 read-sscholar: read-sscholar.cpp db.h sscholar.h
 	g++ -std=c++1y read-sscholar.cpp -o read-sscholar -O3
 
+
 rebuild-data-sscholar: read-sscholar
+	mkdir -p data-sscholar
 	zcat sscholar/papers-*.json.gz | ./read-sscholar
 
 rebuild-data-sscholar-t: read-sscholar
+	mkdir -p data-sscholar
 	zcat sscholar/papers-*.json.gz | /usr/bin/time ./read-sscholar
 
 sscholar-search: sscholar-search.cpp db.h sscholar.h netauto.h netregex.h netedge.h ext.h parser.h
