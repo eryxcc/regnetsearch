@@ -15,6 +15,9 @@ namespace regnetsearch {
     std::shared_ptr<xEdge> e;
     state next;
     sEdge(std::shared_ptr<xEdge> _e, state _next) : e(_e), next(_next) {}
+#ifndef NOEDGECACHE
+    std::vector<std::pair<double*, double*> > edgecache;
+#endif
     virtual void display(std::ostream &os);
     void run();
     void run(int i);
@@ -83,6 +86,28 @@ namespace regnetsearch {
           }
         return en;
         });
+#ifndef NOEDGECACHE
+      if(edgecache.size() == 0) {
+        auto& rest = e->reversed->starts;
+        auto& redt = e->reversed->data;
+        edgecache.resize(redt.size());
+        printf("Caching an edge\n");
+        ext::parallelize(next->ds->qty, [&] (int a, int b) {
+          for(int i=a; i<b; i++) {
+            int st0 = rest[i];
+            int st1 = rest[i+1];
+            for(; st0<st1; st0++) 
+              edgecache[st0].first = &dn[i], 
+              edgecache[st0].second = &dh[redt[st0]];
+            }
+          return 0;
+          });
+        }
+      ext::parallelize(edgecache.size(), [&] (int a, int b) {
+        for(int i=a; i<b; i++) *edgecache[i].first += *edgecache[i].second;
+        return 0;
+        });
+#else
       ext::parallelize(next->ds->qty, [&] (int a, int b) {
         auto& rest = e->reversed->starts;
         auto& redt = e->reversed->data;
@@ -94,6 +119,7 @@ namespace regnetsearch {
           }
         return 0;
         });
+#endif
       ext::parallelize(ds->qty, [&] (int a, int b) {
         for(int i=a; i<b; i++) dh[i] = 0;
         return 0;
