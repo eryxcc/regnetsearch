@@ -19,14 +19,14 @@ namespace regnetsearch {
     virtual void activate() { if(!distr) distr = make<numtable> (ds); }
     virtual void quickprepare() {
       if(!energy) return;
-      eigen = distr->val;
+      eigen.resize(ds->qty);
       double factor = energy / (lastenergy - energy);
 #ifdef NOTHREADS
       auto it = distr->val.begin();
-      for(double& d: eigen) *(it++) += (d *= factor);
+      for(double& d: eigen) { d = *it * factor; *(it++) += d;}
 #else
       ext::parallelize(ds->qty, [&] (int a, int b) {
-        for(int i=a; i<b; i++) distr->val[i] += (eigen[i] *= factor);
+        for(int i=a; i<b; i++) distr->val[i] += (eigen[i] = distr->val[i] * factor);
         return 0;
         });
 #endif
@@ -42,7 +42,6 @@ namespace regnetsearch {
         return 0;
         });
 #endif
-      eigen.clear();
       }
     virtual void run() {}
     virtual void run(int i) {}
