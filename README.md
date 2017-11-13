@@ -28,7 +28,7 @@ x^y is min(x,y)
 * _condition1_ (>|<|=|!=|>=|<=) _condition2_ (returns a 0/1 condition)
 * search _nameset_ "string"
 * regexsearch _nameset_ "extended POSIX regex"
-* (exists|forall|sum|prod|min|max) _edge_ _condition_ [not yet implemented]
+* (exists|forall|sum|prod|min|max) _edge_ _condition_
 * _table_
 
 ## Expressions
