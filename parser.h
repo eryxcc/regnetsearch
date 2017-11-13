@@ -15,6 +15,19 @@ namespace regnetsearch {
     xnumtable(numtable _t) : t(_t) {}
     xnumtable(double _d=0) : fixed(_d) {}
     };  
+
+  template<class T> xnumtable apply_unary(xnumtable x1, T f) {
+    if(x1.t) {
+      numtable res = make<numtable>(x1.t->ds);
+      res->lazy.set([f,res, x1] () {
+        printf("applying unary\n");
+        x1.t->lazy(); res->fix();
+        for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i]);
+        });
+      return res;
+      }
+    else return (double) f(x1.fixed);
+    }
   
   template<class T> xnumtable apply(xnumtable x1, xnumtable x2, T f) {
     if(x1.t && x2.t && unify(x1.t->ds, x2.t->ds)) {
@@ -23,6 +36,7 @@ namespace regnetsearch {
         printf("applying\n");
         x1.t->lazy();
         x2.t->lazy();
+        res->fix();
         for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.t->val[i]);
         });
       return res;
@@ -31,6 +45,7 @@ namespace regnetsearch {
       numtable res = make<numtable>(x1.t->ds);
       res->lazy.set([f,res, x1,x2] () {
         printf("applying\n");
+        x1.t->lazy(); res->fix();
         for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.fixed);
         });
       return res;
@@ -39,6 +54,7 @@ namespace regnetsearch {
       numtable res = make<numtable>(x2.t->ds);
       res->lazy.set([f,res,x1,x2] () {
         printf("applying\n");
+        x2.t->lazy(); res->fix();
         for(int i=0; i<x2.t->ds->qty; i++) res->val[i] = f(x1.fixed, x2.t->val[i]);
         });
       return res;
@@ -50,7 +66,7 @@ namespace regnetsearch {
     numtable res = make<numtable>(r->sortfrom);
     res->lazy.set([sub,zero,f,r,res] () {
       printf("doing fold\n");
-      r->lazy();
+      r->lazy(); if(sub.t) sub.t->lazy(); res->fix();
       int k = 0;
       for(int i=0; i<res->ds->qty; i++) {
         res->val[i] = zero;
@@ -63,7 +79,6 @@ namespace regnetsearch {
             res->val[i] = f(res->val[i], sub.fixed);
           }
         }
-      printf("fold done\n");
       });
     return res;  
     }
@@ -226,6 +241,12 @@ namespace regnetsearch {
           else break;
           }
         d = atof(s.c_str());
+        }
+      else if(peek() == '!') {
+        char c = eat(); 
+        xnumtable t = parseval(2);
+        d = apply_unary(t, [] (auto a) { return !a; });
+        skipwhitespace(); 
         }
       else if(peekletter()) {
         std::string s = readToken();
