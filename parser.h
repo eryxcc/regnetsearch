@@ -256,7 +256,7 @@ namespace regnetsearch {
           if(!st) throw parseerror("expected a string table", p, parsepos);
           skipwhitespace();
           std::string s1 = readStringConstant();
-          return icasesearch(st, s1);
+          d = icasesearch(st, s1);
           }
         else if(s == "sum") 
           d = parsequantifier(0, [] (auto a, auto b) { return a+b; });
