@@ -55,7 +55,8 @@ struct sscholarparser: parser {
       make_pair("venue", venues),
       make_pair("paperTitle", paperTitles),
       make_pair("paperId", paperIds),
-      make_pair("keyphrase", keyphrases)
+      make_pair("keyphrase", keyphrases),
+      make_pair("paperAbstract", paperAbstract),
       };
     for(auto x: namedTables) if(x.first == s) 
       return x.second;

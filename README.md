@@ -71,7 +71,7 @@ keyphrases, kpapers
 
 ### Name sets
 
-authorName, paperTitle, proceedingsCode, venue, keyphrase, paperId
+authorName, paperTitle, proceedingsCode, venue, keyphrase, paperId, paperAbstract
 
 ### Tables 
 

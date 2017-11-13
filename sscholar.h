@@ -12,7 +12,7 @@ namespace sscholar {
   
   podtable<int> paperyears;
 
-  stringtable authorIds, paperIds, authorNames, paperTitles, keyphrases, venues;
+  stringtable authorIds, paperIds, authorNames, paperTitles, keyphrases, venues, paperAbstracts;
 
   edgedb paperAuthor, paperKeyphrase, paperVenue, citations;
 
@@ -28,6 +28,8 @@ namespace sscholar {
     lazy_read("data-sscholar/paper-citations.edb", citations);
 
     lazy_read("data-sscholar/papers.sdb", paperTitles, sPaper);
+
+    lazy_read("data-sscholar/paper-abstracts.sdb", paperAbstracts, sPaper);
 
     lazy_read("data-sscholar/authors.sdb", authorNames, sAuthor);    
     lazy_read("data-sscholar/paper-author.edb", paperAuthor);

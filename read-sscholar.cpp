@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
   auto venues = make_shared<dictionary> (sVenue);
   auto keyphrases = make_shared<dictionary> (sKey);
   auto paperTitles = make_shared<stringstable> (sPaper);
+  auto paperAbstracts = make_shared<stringstable> (sPaper);
   paperyears = make<podtable<int>> (sPaper);
 
   while(true) {
@@ -43,6 +44,8 @@ int main(int argc, char **argv) {
       }
   
     if(PH(2)) paperTitles->set(id, j["title"].get<string>());
+    
+    if(PH(7) && j.count("paperAbstracts")) paperAbstracts->set(id, j["paperAbstract"].get<string>());
     
     if(PH(3)) for(auto a: j["authors"]) {
       int aid = authorNames->findoradd(a["name"].get<string>());
@@ -94,6 +97,9 @@ int main(int argc, char **argv) {
     binwrite("data-sscholar/keyphrases.sdb", (stringtable) keyphrases);
     binwrite("data-sscholar/paper-keyphrases.edb", paperKeyphrase);
     }
+  
+  if(PH(7))
+    binwrite("data-sscholar/paper-abstracts.sdb", (stringtable) paperAbstracts);
   
   printf("done\n");
        
