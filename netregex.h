@@ -84,6 +84,7 @@ namespace regnetsearch {
       c(_c), e1(_eyes), e0(_eno) { }
 
     stateinfo compile(dbsort ds) {
+      c->lazy();
       if(c->ds != ds) throw wrong_sort(c->ds, ds);
       
       state& s = reserve_state();
@@ -113,6 +114,7 @@ namespace regnetsearch {
     xWhile(expression _e, numtable _c) : e(_e), c(_c) {}
 
     stateinfo compile(dbsort ds) {
+      c->lazy();
       state& s1 = reserve_state();
       auto a1 = e->compile(ds);      
       if(a1.ds && a1.ds != ds) throw wrong_sort(a1.ds, ds);
@@ -196,6 +198,7 @@ namespace regnetsearch {
     numtable di;
     xStart(numtable d) : di(d) { }
     stateinfo compile(dbsort ds) {
+      di->lazy();
       if(ds != nosort) throw wrong_sort(ds, nosort);
       state& s = reserve_state();
 

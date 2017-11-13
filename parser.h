@@ -19,38 +19,52 @@ namespace regnetsearch {
   template<class T> xnumtable apply(xnumtable x1, xnumtable x2, T f) {
     if(x1.t && x2.t && unify(x1.t->ds, x2.t->ds)) {
       numtable res = make<numtable>(x1.t->ds);
-      for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.t->val[i]);
+      res->lazy.set([f,res, x1, x2] () {
+        printf("applying\n");
+        x1.t->lazy();
+        x2.t->lazy();
+        for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.t->val[i]);
+        });
       return res;
       }
     else if(x1.t) {
       numtable res = make<numtable>(x1.t->ds);
-      for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.fixed);
+      res->lazy.set([f,res, x1,x2] () {
+        printf("applying\n");
+        for(int i=0; i<x1.t->ds->qty; i++) res->val[i] = f(x1.t->val[i], x2.fixed);
+        });
       return res;
       }
     else if(x2.t) {
       numtable res = make<numtable>(x2.t->ds);
-      for(int i=0; i<x2.t->ds->qty; i++) res->val[i] = f(x1.fixed, x2.t->val[i]);
+      res->lazy.set([f,res,x1,x2] () {
+        printf("applying\n");
+        for(int i=0; i<x2.t->ds->qty; i++) res->val[i] = f(x1.fixed, x2.t->val[i]);
+        });
       return res;
       }
     else return f(x1.fixed, x2.fixed);
     }
   
   template<class T, class U> numtable fold(relation r, xnumtable sub, T zero, U f) {
-    printf("called fold\n");
     numtable res = make<numtable>(r->sortfrom);
-    int k = 0;
-    for(int i=0; i<res->ds->qty; i++) {
-      res->val[i] = zero;
-      if(sub.t) { 
-        for(; k < r->starts[i+1]; k++)
-          res->val[i] = f(res->val[i], sub.t->val[r->data[k]]);
+    res->lazy.set([sub,zero,f,r,res] () {
+      printf("doing fold\n");
+      r->lazy();
+      int k = 0;
+      for(int i=0; i<res->ds->qty; i++) {
+        res->val[i] = zero;
+        if(sub.t) { 
+          for(; k < r->starts[i+1]; k++)
+            res->val[i] = f(res->val[i], sub.t->val[r->data[k]]);
+          }
+        else {
+          for(; k < r->starts[i+1]; k++)
+            res->val[i] = f(res->val[i], sub.fixed);
+          }
         }
-      else {
-        for(; k < r->starts[i+1]; k++)
-          res->val[i] = f(res->val[i], sub.fixed);
-        }
-      }
-    printf("fold done\n");
+      printf("fold done\n");
+      });
     return res;  
     }
   
@@ -93,7 +107,7 @@ namespace regnetsearch {
     
     std::string readToken() {
       std::string res;
-      while(peekletter())  res += eat();
+      while(peekletter()) res += eat();
       return res;
       }
     
@@ -221,7 +235,6 @@ namespace regnetsearch {
           if(!st) throw parseerror("expected a string table", p, parsepos);
           skipwhitespace();
           std::string s1 = readStringConstant();
-          printf("Searching for %s...\n", s1.c_str());
           return icasesearch(st, s1);
           }
         else if(s == "sum") 
@@ -241,7 +254,7 @@ namespace regnetsearch {
           skipwhitespace();
           std::string s1 = readStringConstant();
           using namespace std::regex_constants;
-          printf("Searching for %s...\n", s1.c_str());
+          printf("Compiled regex: %s\n", s1.c_str());
           d = regexsearch(st, std::regex(s1, icase | extended));
           }
         else if(namedNumtable(s, d)) ;

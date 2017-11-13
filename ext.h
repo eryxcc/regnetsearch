@@ -125,6 +125,37 @@ template<class T> struct maker {  };
     return res;
 #endif
     }
+
+  // for objects that can be read/constructed later
+  
+  struct lazyboy {
+    int state = 0; // 0 - lazy not specified, 1 - reader specified, 2 - already read
+    std::function<void()> actual;
+    
+    void done() {
+      state = 2; actual = std::function<void()> ();
+      }
+    
+    lazyboy(int i = 0) { state = i; }
+    
+    template<class T> void set(const T& t) { actual = t; state = 1; }
+    void set(const lazyboy& r) { *this = r; }
+    template<class T> void setNew(const T& t) { if(state == 0) set(t); }
+    
+    bool isUnknown() { return state = 0; }
+
+    void operator() () {
+      if(state == 0) {
+        fprintf(stderr, "unknown lazy called\n");
+        }
+      else if(state == 1) {
+        // we make a copy, to prevent problems when done() is called
+        auto a = actual;
+        a();
+        done();
+        }
+      }
+    };
   }
 
 #endif

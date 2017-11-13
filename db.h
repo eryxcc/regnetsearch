@@ -13,8 +13,10 @@ namespace regnetsearch {
   using ext::binwrite;
   using ext::binread;
   using ext::make;
-
+  
+  // a function either prepares the draft or actually reads the data  
   struct base_sort {
+    ext::lazyboy lazy;
     int qty;
     std::string name;
     base_sort(const std::string& n) : name(n) { qty = 0; }
@@ -29,12 +31,14 @@ namespace regnetsearch {
     }
 
   template<class T> struct base_podtable {
+    ext::lazyboy lazy;
     dbsort ds;
     std::vector<T> val;
     
-    base_podtable(dbsort s) : ds(s) { val.resize(s->qty); }
+    void fix() { val.resize(ds->qty); }
+    base_podtable(dbsort s) : ds(s) { fix(); }
     void clear() { for(T& d: val) d = 0; }
-    T& operator [] (int i) { val.resize(ds->qty); return val[i]; }
+    T& operator [] (int i) { fix(); return val[i]; }
     };
 
   template<class T> using podtable = std::shared_ptr<base_podtable<T>>;
@@ -47,9 +51,11 @@ namespace regnetsearch {
 
   template<class T> void binread(FILE *f, base_podtable<T>& p) {
     binread(f, p.val);
+    p.lazy.done();
     }
   
   struct base_stringtable {
+    ext::lazyboy lazy;
     dbsort ds;
     std::vector<int> offsets; 
     std::vector<char> contents;
@@ -70,6 +76,8 @@ namespace regnetsearch {
     ext::binread(f, s.offsets);
     ext::binread(f, s.contents);
     s.ds->qty = s.offsets.size();
+    s.lazy.done();
+    s.ds->lazy.done();
     }
   
   struct stringstable : base_stringtable {
@@ -110,6 +118,7 @@ namespace regnetsearch {
     };  
 
   struct edgedb {
+    ext::lazyboy lazy;
     std::vector<std::pair<int, int> > edges;
     
     int add(int i, int j) { edges.emplace_back(i,j); }
@@ -121,35 +130,47 @@ namespace regnetsearch {
   
   void binread(FILE *f, edgedb& e) {
     binread(f, e.edges);
+    e.lazy.done();
     }
   
   numtable regexsearch(stringtable st, const std::regex& r) {
     numtable result = make<numtable> (st->ds);    
-    int total0 = ext::parallelize(st->ds->qty, [&] (int a, int b) {
-      int total = 0;
-      for(int i=a; i<b; i++) {
-        auto b = std::regex_search(st->get(i), r);
-        if(b) total++;
-        result->val[i] = b ? 1 : 0;
-        }
-      return total;
+    result->lazy.set([st, r, result] {
+      st->lazy();
+      result->fix();
+      printf("Searching for regex...\n");
+      int total0 = ext::parallelize(st->ds->qty, [&] (int a, int b) {
+        int total = 0;
+        for(int i=a; i<b; i++) {
+          auto b = std::regex_search(st->get(i), r);
+          if(b) total++;
+          result->val[i] = b ? 1 : 0;
+          }
+        return total;
+        });
+      printf("total found = %d\n", total0);
       });
-    printf("total found = %d\n", total0);
     return result;
     }
   
   numtable icasesearch(stringtable st, const std::string& s) {
     numtable result = make<numtable> (st->ds);
-    int total0 = ext::parallelize(st->ds->qty, [&] (int a, int b) {
-      int total = 0;
-      for(int i=a; i<b; i++) {
-        auto b = ext::isearch(st->get(i), s);
-        if(b) total++;
-        result->val[i] = b ? 1 : 0;
-        }
-      return total;
+    result->lazy.set([st, s, result] {
+      printf("Searching for '%s'...\n", s.c_str());
+      st->lazy();
+      result->fix();
+      
+      int total0 = ext::parallelize(st->ds->qty, [&] (int a, int b) {
+        int total = 0;
+        for(int i=a; i<b; i++) {
+          auto b = ext::isearch(st->get(i), s);
+          if(b) total++;
+          result->val[i] = b ? 1 : 0;
+          }
+        return total;
+        });
+      printf("total found = %d\n", total0);
       });
-    printf("total found = %d\n", total0);
     return result;
     }
   
@@ -163,6 +184,35 @@ namespace regnetsearch {
     T result = 0;
     for(int i=0; i<tab->ds->qty; i++) result += tab->val[i];
     return result;
+    }
+  
+  template<class T> void lazy_read(const char *fname, podtable<T>& p, dbsort s) {
+    if(!p) {
+      p = make<podtable<T>> (s);
+      p->lazy.setNew([fname, &p,s] () {
+        printf("Loading file: %s\n", fname);
+        binread(fname, *p);
+        });
+      s->lazy.setNew(p->lazy);
+      }
+    }
+
+  void lazy_read(const char *fname, stringtable& st, dbsort s) {
+    if(!st) {
+      st = make<stringtable> (s);
+      st->lazy.setNew([fname, &st,s] () {
+        printf("Loading file: %s\n", fname);
+        binread(fname, *st);
+        });
+      s->lazy.setNew(st->lazy);
+      }
+    }
+
+  void lazy_read(const char *fname, edgedb& e) {
+    e.lazy.setNew([fname, &e] () {
+      printf("Loading file: %s\n", fname);
+      binread(fname, e.edges); 
+      });
     }
   
   }

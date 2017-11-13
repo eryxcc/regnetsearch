@@ -16,7 +16,6 @@ using namespace sscholar;
 
 static relation rAuthors, rPapers, rWhichvenue, rVPapers, rCites, rCitedBy, rKeyphrases, rKPapers;
 
-
 void buildRelations() {
   readEdges(sPaper, sAuthor, rAuthors, "authors", rPapers, "papers", paperAuthor);
   readEdges(sPaper, sVenue, rWhichvenue, "whichjournal", rVPapers, "jpapers", paperVenue);
@@ -32,12 +31,15 @@ struct sscholarparser: parser {
     static auto allRelations = { 
       rAuthors, rPapers, rWhichvenue, rVPapers, rCites, rCitedBy, rKeyphrases, rKPapers
       };
-    for(relation x: allRelations) if(x->name == s) return x;
+    for(relation x: allRelations) if(x->name == s) {
+      return x;
+      }
     return nullptr;
     }
 
   virtual bool namedNumtable(std::string s, xnumtable& d) { 
     if(s == "paperYear") { 
+      paperyears->lazy();
       auto res = make<numtable> (sPaper);    
       for(int i=0; i<sPaper->qty; i++)
         res->val[i] = paperyears->val[i];
@@ -55,7 +57,8 @@ struct sscholarparser: parser {
       make_pair("paperId", paperIds),
       make_pair("keyphrase", keyphrases)
       };
-    for(auto x: namedTables) if(x.first == s) return x.second;
+    for(auto x: namedTables) if(x.first == s) 
+      return x.second;
     return nullptr;
     }
   };
@@ -63,11 +66,7 @@ struct sscholarparser: parser {
 int main() {
 
   initSorts();
-  printf("Reading the database...\n");
-  fflush(stdout);
   readDatabases();
-  printf("Building the relations...\n");
-  fflush(stdout);
   buildRelations();
   
   std::string s;
@@ -90,6 +89,7 @@ int main() {
     std::cout << parser.display(err) << "\n";
     exit(1);
     }
+  printf("Expression parsed successfully.\n");
   
   printf("Compiling the automaton...\n");
   fflush(stdout);

@@ -24,21 +24,21 @@ namespace sscholar {
     }
   
   void readDatabases() {
-    binread("data-sscholar/id-paper.sdb", paperIds, sPaper);
-    binread("data-sscholar/paper-citations.edb", citations);
+    lazy_read("data-sscholar/id-paper.sdb", paperIds, sPaper);
+    lazy_read("data-sscholar/paper-citations.edb", citations);
 
-    binread("data-sscholar/papers.sdb", paperTitles, sPaper);
+    lazy_read("data-sscholar/papers.sdb", paperTitles, sPaper);
 
-    binread("data-sscholar/authors.sdb", authorNames, sAuthor);    
-    binread("data-sscholar/paper-author.edb", paperAuthor);
+    lazy_read("data-sscholar/authors.sdb", authorNames, sAuthor);    
+    lazy_read("data-sscholar/paper-author.edb", paperAuthor);
     
-    binread("data-sscholar/paper-years.db", paperyears, sPaper);
+    lazy_read("data-sscholar/paper-years.db", paperyears, sPaper);
 
-    binread("data-sscholar/venues.sdb", venues, sVenue);    
-    binread("data-sscholar/paper-venue.edb", paperVenue);
+    lazy_read("data-sscholar/venues.sdb", venues, sVenue);    
+    lazy_read("data-sscholar/paper-venue.edb", paperVenue);
 
-    binread("data-sscholar/keyphrases.sdb", keyphrases, sKey);    
-    binread("data-sscholar/paper-keyphrases.edb", paperKeyphrase);
+    lazy_read("data-sscholar/keyphrases.sdb", keyphrases, sKey);    
+    lazy_read("data-sscholar/paper-keyphrases.edb", paperKeyphrase);
     }
   
   }

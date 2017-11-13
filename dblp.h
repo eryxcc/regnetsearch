@@ -27,17 +27,17 @@ namespace dblp {
     }
   
   void readDatabases() {
-    binread("data/papers.sdb", paperTitles, sPaper);
-    binread("data/authors.sdb", authorNames, sAuthor);
-    binread("data/journals.sdb", journalNames, sJournal);
-    binread("data/proceedings.sdb", proceedingsCodes, sProcs);
+    lazy_read("data/papers.sdb", paperTitles, sPaper);
+    lazy_read("data/authors.sdb", authorNames, sAuthor);
+    lazy_read("data/journals.sdb", journalNames, sJournal);
+    lazy_read("data/proceedings.sdb", proceedingsCodes, sProcs);
     
-    binread("data/paper-author.edb", paperAuthor);
-    binread("data/paper-journal.edb", paperJournal);
-    binread("data/paper-proceedings.edb", paperProceedings);
+    lazy_read("data/paper-author.edb", paperAuthor);
+    lazy_read("data/paper-journal.edb", paperJournal);
+    lazy_read("data/paper-proceedings.edb", paperProceedings);
     
-    binread("data/paper-types.db", papertypes, sPaper);
-    binread("data/paper-years.db", paperyears, sPaper);
+    lazy_read("data/paper-types.db", papertypes, sPaper);
+    lazy_read("data/paper-years.db", paperyears, sPaper);
     }
   
   void writeDatabases() {

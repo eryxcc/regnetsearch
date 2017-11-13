@@ -6,11 +6,11 @@
 #include <cmath>
 #include <queue>
 
+#define QLEVELS 21
+
 #include "dblp.h"
 #include "netedge.h"
 #include "parser.h"
-
-#define QLEVELS 21
 
 using namespace dblp;
 
@@ -34,13 +34,15 @@ struct dblpparser: parser {
 
   virtual bool namedNumtable(std::string s, xnumtable& d) { 
     if(s == "paperYear") { 
-      auto res = make<numtable> (sPaper);    
+      paperyears->lazy();
+      auto res = make<numtable> (sPaper);
       for(int i=0; i<sPaper->qty; i++)
         res->val[i] = paperyears->val[i];
       d = res;
       return true;
       }
     if(s == "paperType") { 
+      papertypes->lazy();
       auto res = make<numtable> (sPaper);    
       for(int i=0; i<sPaper->qty; i++)
         res->val[i] = papertypes->val[i];

@@ -16,7 +16,7 @@ namespace regnetsearch {
     bool filled;
     double lastenergy, energy;
     std::vector<double> eigen;
-    virtual void activate() { if(!distr) distr = make<numtable> (ds); }
+    virtual void activate() { if(!distr) distr = make<numtable> (ds); distr->lazy.done(); }
     virtual void quickprepare() {
       if(!energy) return;
       eigen.resize(ds->qty);
@@ -192,7 +192,7 @@ namespace regnetsearch {
 
   struct sStart : sBase {
     state startstate;
-    sStart(numtable di, state _next) { distr = di; startstate = _next; }
+    sStart(numtable di, state _next) { distr = di; ds = di->ds; startstate = _next; }
     virtual void activate() {} // d already set!
     virtual void run() {} 
     virtual void display(std::ostream &os) { os << "start in " << startstate; }

@@ -25,6 +25,7 @@ namespace regnetsearch {
     };
 
   struct xEdge : xBase, std::enable_shared_from_this<xEdge> {
+    ext::lazyboy lazy;
     dbsort sortfrom, sortto;
     std::string name;
     relation reversed;
@@ -37,6 +38,7 @@ namespace regnetsearch {
       }
 
     stateinfo compile(dbsort ds) {
+      lazy();
       if(ds != sortfrom) throw wrong_sort(sortfrom, ds);
       state& s = reserve_state();
       auto finish = register_skip();
@@ -156,6 +158,7 @@ namespace regnetsearch {
   
   auto viewTable(stringtable s, std::string title = "") {
     return [s, title] (dbsort ds, int id) {
+      s->lazy();
       printIndent();
       if(ds != s->ds) printf("bad sort in viewTable\n");
       else printf("%s%s\n", title.c_str(), s->get(id));
@@ -164,6 +167,7 @@ namespace regnetsearch {
 
   template<class T> auto viewTable(podtable<T> s, std::string title = "") {
     return [s, title] (dbsort ds, int id) {
+      s->lazy();
       printIndent();
       if(ds != s->ds) printf("bad sort in viewTable\n");
       else std::cout << title << s->val[id] << "\n";
@@ -172,6 +176,7 @@ namespace regnetsearch {
   
   template<class... Ts> auto viewEdge(relation r, std::string title, Ts... ts) {
     return [r, title, ts...] (dbsort ds, int id) {
+      r->lazy();
       if(title != "") {
         printIndent(); printf("%s\n", title.c_str());
         indent += 2;
@@ -186,6 +191,7 @@ namespace regnetsearch {
     }
   
   template<class... T> void present(numtable c, T... t) {
+    c->lazy();
     dbsort ds = c->ds;
     std::vector<int> order;
     for(int i=0; i<ds->qty; i++) 
@@ -209,37 +215,55 @@ namespace regnetsearch {
     straight = makeedge(s1, s2, sname);
     back = makeedge(s2, s1, bname);
     
-    int e = db.edges.size();
-
-    straight->starts.resize(s1->qty+1);
-    straight->data.resize(e);
-    straight->reversed = back;
-    back->starts.resize(s2->qty+1);
-    back->data.resize(e);
-    back->reversed = straight;
+    auto f = [=, &db] {
+      straight->lazy.done();
+      back->lazy.done();
+      db.lazy();
+      s1->lazy();
+      s2->lazy();
+      int e = db.edges.size();
+  
+      straight->starts.resize(s1->qty+1);
+      straight->data.resize(e);
+      straight->reversed = back;
+      back->starts.resize(s2->qty+1);
+      back->data.resize(e);
+      back->reversed = straight;
+      
+      for(auto& p: db.edges) {
+        straight->starts[p.first]++,
+        back->starts[p.second]++;
+        }
+      
+      int cum;
+      
+      cum = 0;
+      for(int& i: straight->starts) {
+        cum += i;
+        i = cum;
+        }
+  
+      cum = 0;
+      for(int& i: back->starts) {
+        cum += i;
+        i = cum;
+        }
+  
+      for(auto& p: db.edges) 
+        straight->data[--straight->starts[p.first]] = p.second,
+        back->data[--back->starts[p.second]] = p.first;    
+      };
     
-    for(auto& p: db.edges) {
-      straight->starts[p.first]++,
-      back->starts[p.second]++;
-      }
-    
-    int cum;
-    
-    cum = 0;
-    for(int& i: straight->starts) {
-      cum += i;
-      i = cum;
-      }
+    straight->lazy.setNew(f);
+    back->lazy.setNew(f);
+    }
 
-    cum = 0;
-    for(int& i: back->starts) {
-      cum += i;
-      i = cum;
-      }
-
-    for(auto& p: db.edges) 
-      straight->data[--straight->starts[p.first]] = p.second,
-      back->data[--back->starts[p.second]] = p.first;    
+  void readEdgesEager(dbsort s1, dbsort s2, 
+    relation& straight, const std::string& sname, 
+    relation& back,    const std::string& bname, 
+    edgedb& db) {
+    readEdges(s1, s2, straight, sname, back, bname, db);
+    straight->lazy();
     }
   
   }
