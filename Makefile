@@ -29,7 +29,6 @@ query-results.txt: dblp-search alldata query.txt
 read-sscholar: read-sscholar.cpp db.h sscholar.h
 	g++ -std=c++1y read-sscholar.cpp -o read-sscholar -O3 -lpthread
 
-
 rebuild-data-sscholar: read-sscholar
 	mkdir -p data-sscholar
 	zcat sscholar/papers-*.json.gz | ./read-sscholar
@@ -38,6 +37,15 @@ rebuild-data-sscholar-t: read-sscholar
 	mkdir -p data-sscholar
 	zcat sscholar/papers-*.json.gz | /usr/bin/time ./read-sscholar
 
-sscholar-search: sscholar-search.cpp db.h sscholar.h netauto.h netregex.h netedge.h ext.h parser.h
+data-sscholar/papers.sdb:
+	$(info You need to download the data from Semantic Scholar for sscholar-search to work.)
+	$(info 1. download the corpus from http://labs.semanticscholar.org/corpus/)
+	$(info 2. unzip the zip, and place the papers-*.json.gz obtained in sscholar)
+	$(info 3. make rebuild-data-scholar)
+	$(error no data found)
+
+sscholar-search: sscholar-search.cpp db.h sscholar.h netauto.h netregex.h netedge.h ext.h parser.h 
 	g++ -std=c++1y sscholar-search.cpp -o sscholar-search -O3 -lpthread
 
+sscholar-query-results.txt: sscholar-search data-sscholar/papers.sdb query.txt
+	./sscholar-search < query.txt > sscholar-query-results.txt
