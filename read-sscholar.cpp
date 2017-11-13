@@ -50,7 +50,6 @@ int main(int argc, char **argv) {
     if(PH(3)) for(auto a: j["authors"]) {
       int aid = authorNames->findoradd(a["name"].get<string>());
       paperAuthor.add(id, aid);
-      printf("  author id = %d\n", aid);
       }
     
     if(PH(4) && j.count("year"))
