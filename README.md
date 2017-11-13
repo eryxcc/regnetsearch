@@ -26,6 +26,7 @@ x^y is min(x,y)
 * _real constant_
 * _condition1_ (+|-|\*|/|&|||^) _condition2_
 * _condition1_ (>|<|=|!=|>=|<=) _condition2_ (returns a 0/1 condition)
+* ! _condition_ (like the ! operator in C)
 * search _nameset_ "string"
 * regexsearch _nameset_ "extended POSIX regex"
 * (exists|forall|sum|prod|min|max) _edge_ _condition_
