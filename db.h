@@ -57,7 +57,7 @@ namespace regnetsearch {
   struct base_stringtable {
     ext::lazyboy lazy;
     dbsort ds;
-    std::vector<int> offsets; 
+    std::vector<size_t> offsets; 
     std::vector<char> contents;
     base_stringtable(dbsort d) : ds(d) {}
     const char* get(int id) { return &(contents[offsets[id]]); }
@@ -84,7 +84,7 @@ namespace regnetsearch {
 
     void set(int index, const std::string& s) {
       offsets.resize(ds->qty);
-      int res = offsets.size();
+      size_t res = offsets.size();
       offsets[index] = contents.size();
       for(char ch: s) contents.push_back(ch);
       contents.push_back(0);
