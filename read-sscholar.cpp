@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
   
     if(PH(2)) paperTitles->set(id, j["title"].get<string>());
     
-    if(PH(7) && j.count("paperAbstracts")) paperAbstracts->set(id, j["paperAbstract"].get<string>());
+    if(PH(7) && j.count("paperAbstract")) paperAbstracts->set(id, j["paperAbstract"].get<string>());
     
     if(PH(3)) for(auto a: j["authors"]) {
       int aid = authorNames->findoradd(a["name"].get<string>());
