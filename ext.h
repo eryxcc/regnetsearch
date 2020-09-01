@@ -28,13 +28,13 @@ template<class T> struct maker {  };
     }
   
   template<class T> void binwrite(FILE *f, const std::vector<T>& x) {
-    int siz = x.size();
+    size_t siz = x.size();
     binwrite(f, siz);
     fwrite(x.data(), sizeof(x[0]), siz, f);
     }
   
   template<class T> void binread(FILE *f, std::vector<T>& x) {
-    int siz;
+    size_t siz;
     binread(f, siz);
     x.resize(siz);
     scanerr=fread(x.data(), sizeof(x[0]), siz, f);
